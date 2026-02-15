@@ -7,52 +7,212 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
+enum Role {
   ADMIN
-  EMPLOYEE
+  VENDEDOR
+}
+
+enum MovementType {
+  INGRESO
+  EGRESO
+}
+
+enum VoucherType {
+  FACTURA
+  PRESUPUESTO
+}
+
+enum PurchaseOrderStatus {
+  PENDIENTE
+  RECIBIDA
+  CANCELADA
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  street    String
+  number    String
+  city      String
+  province  String
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Phone {
+  id        String   @id @default(cuid())
+  number    String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("phones")
 }
 
 model User {
-  id       String   @id @default(cuid())
-  name     String
-  email    String   @unique
-  password String
-  role     UserRole @default(EMPLOYEE)
-
+  id        String    @id @default(cuid())
+  username  String    @unique
+  password  String
+  role      Role      @default(VENDEDOR)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  sales          Sale[]
+  movements      Movement[]
+  boxesOpened    Box[]     @relation("BoxOpenedBy")
+  boxesClosed    Box[]     @relation("BoxClosedBy")
 
   @@map("users")
 }
 
-model Product {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  barcode     String? @unique
-  price       Decimal @db.Decimal(10, 2)
-  cost        Decimal @db.Decimal(10, 2)
-  stock       Int     @default(0)
-  minStock    Int     @default(0)
-
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  dniCuit   String?   @unique
+  email     String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  addresses Address[]
+  phones    Phone[]
+  sales     Sale[]
+  vouchers  Voucher[]
+
+  @@map("clients")
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  barcode         String    @unique
+  stockActual     Int       @default(0)
+  stockMinimo     Int       @default(5)
+  cost            Decimal   @db.Decimal(10, 2)
+  profitMargin    Decimal   @db.Decimal(5, 2)
+  price           Decimal   @db.Decimal(10, 2)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  supplierId  String
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  saleDetails SaleDetail[]
 
   @@map("products")
 }
 
-model Customer {
-  id      String  @id @default(cuid())
-  name    String
-  email   String?
-  phone   String?
-  address String?
-
+model Supplier {
+  id        String    @id @default(cuid())
+  name      String
+  contact   String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@map("customers")
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model Box {
+  id          String    @id @default(cuid())
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  initialCash Decimal   @db.Decimal(10, 2)
+  finalCash   Decimal?  @db.Decimal(10, 2)
+  isOpen      Boolean   @default(true)
+
+  openedBy  String
+  openedByUser User @relation("BoxOpenedBy", fields: [openedBy], references: [id])
+  closedBy  String?
+  closedByUser User? @relation("BoxClosedBy", fields: [closedBy], references: [id])
+  
+  movements Movement[]
+  sales     Sale[]
+
+  @@map("boxes")
+}
+
+model Movement {
+  id          String       @id @default(cuid())
+  amount      Decimal      @db.Decimal(10, 2)
+  type        MovementType
+  description String?
+  createdAt   DateTime     @default(now())
+
+  boxId  String
+  box    Box    @relation(fields: [boxId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("movements")
+}
+
+model Sale {
+  id        String   @id @default(cuid())
+  total     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  clientId String?
+  client   Client?      @relation(fields: [clientId], references: [id])
+  userId   String
+  user     User         @relation(fields: [userId], references: [id])
+  boxId    String
+  box      Box          @relation(fields: [boxId], references: [id])
+  details  SaleDetail[]
+  voucher  Voucher?
+
+  @@map("sales")
+}
+
+model SaleDetail {
+  id       String  @id @default(cuid())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+  subtotal Decimal @db.Decimal(10, 2)
+
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_details")
+}
+
+model Voucher {
+  id        String      @id @default(cuid())
+  number    String      @unique
+  type      VoucherType
+  createdAt DateTime    @default(now())
+
+  saleId   String @unique
+  sale     Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@map("vouchers")
+}
+
+model PurchaseOrder {
+  id        String              @id @default(cuid())
+  status    PurchaseOrderStatus @default(PENDIENTE)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@map("purchase_orders")
 }
