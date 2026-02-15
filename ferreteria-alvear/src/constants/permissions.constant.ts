@@ -30,8 +30,8 @@ export const ROUTES_BY_ROLE = {
   [Role.ADMIN]: [
     {
       path: "/",
-      label: "Dashboard",
-      icon: "Dashboard01Icon",
+      label: "Inicio",
+      icon: "Home01Icon",
       module: MODULES.DASHBOARD,
     },
     {
@@ -48,7 +48,7 @@ export const ROUTES_BY_ROLE = {
     },
     {
       path: "/inventory",
-      label: "Inventario",
+      label: "Stock",
       icon: "PackageOpenIcon",
       module: MODULES.INVENTORY,
     },
@@ -79,21 +79,15 @@ export const ROUTES_BY_ROLE = {
     {
       path: "/users",
       label: "Usuarios",
-      icon: "UserSettingsIcon",
+      icon: "UserIcon",
       module: MODULES.USERS,
-    },
-    {
-      path: "/settings",
-      label: "Configuración",
-      icon: "Settings01Icon",
-      module: MODULES.SETTINGS,
     },
   ],
   [Role.VENDEDOR]: [
     {
       path: "/",
-      label: "Dashboard",
-      icon: "Dashboard01Icon",
+      label: "Inicio",
+      icon: "Home01Icon",
       module: MODULES.DASHBOARD,
     },
     {

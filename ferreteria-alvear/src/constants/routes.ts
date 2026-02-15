@@ -13,7 +13,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   login: "Iniciar Sesión",
   products: "Productos",
   sales: "Ventas",
-  inventory: "Inventario",
+  inventory: "Stock",
   customers: "Clientes",
   reports: "Reportes",
 } as const;
