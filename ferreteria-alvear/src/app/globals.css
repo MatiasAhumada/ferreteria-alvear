@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+
+  --color-primary: #003459;
+  --color-primary-hover: #002845;
+  --color-primary-light: #0064ab;
+  --color-primary-dark: #001423;
+
+  --color-secondary: #007ea7;
+  --color-secondary-hover: #006587;
+  --color-secondary-light: #00b1ed;
+  --color-secondary-dark: #003243;
+
+  --color-accent: #00a8e8;
+  --color-accent-hover: #0084b8;
+  --color-accent-light: #57cfff;
+  --color-accent-dark: #00425c;
+
+  --color-background: #ffffff;
+  --color-background-secondary: #cccccc;
+  --color-background-tertiary: #999999;
+
+  --color-surface: #ffffff;
+  --color-surface-hover: #cccccc;
+  --color-surface-active: #999999;
+
+  --color-text: #00171f;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  --color-text-inverse: #ffffff;
+
+  --color-border: #cccccc;
+  --color-border-hover: #999999;
+  --color-border-focus: #007ea7;
+
+  --color-success: #00a8e8;
+  --color-success-light: #c7efff;
+  --color-success-dark: #00425c;
+
+  --color-error: #00171f;
+  --color-error-light: #9fe7ff;
+  --color-error-dark: #000506;
+
+  --color-warning: #007ea7;
+  --color-warning-light: #bbeeff;
+  --color-warning-dark: #001922;
+
+  --color-info: #00a8e8;
+  --color-info-light: #c7efff;
+  --color-info-dark: #00212e;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display), system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

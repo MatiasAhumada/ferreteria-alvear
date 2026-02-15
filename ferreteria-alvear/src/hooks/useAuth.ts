@@ -1,0 +1,63 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { authService } from "@/services/auth.service";
+import { AuthUser } from "@/types/auth.types";
+import {
+  clientErrorHandler,
+  clientSuccessHandler,
+} from "@/utils/handlers/clientError.handler";
+import { AUTH_MESSAGES } from "@/constants/auth.constant";
+
+export function useAuth() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { user: authUser } = await authService.me();
+      setUser(authUser);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (username: string, password: string) => {
+    try {
+      const { user: authUser } = await authService.login({ username, password });
+      setUser(authUser);
+      clientSuccessHandler(AUTH_MESSAGES.LOGIN_SUCCESS);
+      return true;
+    } catch (error) {
+      clientErrorHandler(error);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authService.logout();
+      setUser(null);
+      clientSuccessHandler(AUTH_MESSAGES.LOGOUT_SUCCESS);
+      return true;
+    } catch (error) {
+      clientErrorHandler(error);
+      return false;
+    }
+  };
+
+  return {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    checkAuth,
+  };
+}
