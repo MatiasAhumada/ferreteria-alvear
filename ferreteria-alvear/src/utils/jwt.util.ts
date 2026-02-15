@@ -5,8 +5,8 @@ import { JwtPayload } from "@/types/auth.types";
 export const jwtUtils = {
   sign(payload: JwtPayload): string {
     return jwt.sign(payload, AUTH_CONSTANTS.JWT_SECRET, {
-      expiresIn: AUTH_CONSTANTS.JWT_EXPIRES_IN,
-    });
+      expiresIn: AUTH_CONSTANTS.JWT_EXPIRES_IN as string,
+    } as jwt.SignOptions);
   },
 
   verify(token: string): JwtPayload {
