@@ -22,13 +22,15 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    const success = await login(username, password);
+    try {
+      const success = await login(username, password);
 
-    if (success) {
-      router.push(ROUTES.HOME);
+      if (success) {
+        window.location.href = ROUTES.HOME;
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
