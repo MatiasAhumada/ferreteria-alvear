@@ -5,12 +5,19 @@ import { ROUTES } from "@/constants/routes";
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const token = request.cookies.get(AUTH_CONSTANTS.TOKEN_COOKIE_NAME)?.value;
 
   if (pathname === ROUTES.LOGIN) {
+    if (token) {
+      try {
+        jwtUtils.verify(token);
+        return NextResponse.redirect(new URL(ROUTES.HOME, request.url));
+      } catch {
+        return NextResponse.next();
+      }
+    }
     return NextResponse.next();
   }
-
-  const token = request.cookies.get(AUTH_CONSTANTS.TOKEN_COOKIE_NAME)?.value;
 
   if (!token) {
     return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
@@ -18,7 +25,6 @@ export default function proxy(request: NextRequest) {
 
   try {
     jwtUtils.verify(token);
-
     return NextResponse.next();
   } catch {
     const response = NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));

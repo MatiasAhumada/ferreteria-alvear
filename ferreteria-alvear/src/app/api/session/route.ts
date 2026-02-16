@@ -10,16 +10,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { user, token } = await authService.login(body);
 
-    const response = NextResponse.json(
-      { user, token },
-      { status: httpStatus.OK }
-    );
+    const response = NextResponse.json({ user, token }, { status: httpStatus.OK });
 
     response.cookies.set(AUTH_CONSTANTS.TOKEN_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && !request.url.includes("localhost"),
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
+      path: "/",
     });
 
     return response;
@@ -40,10 +38,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const response = NextResponse.json(
-    { message: "Logout successful" },
-    { status: httpStatus.OK }
-  );
+  const response = NextResponse.json({ message: "Logout successful" }, { status: httpStatus.OK });
 
   response.cookies.delete(AUTH_CONSTANTS.TOKEN_COOKIE_NAME);
 
