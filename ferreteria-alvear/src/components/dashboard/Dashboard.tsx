@@ -70,7 +70,7 @@ export function Dashboard({ role }: DashboardProps) {
               <span className="hidden sm:inline">{HEADER_ACTIONS.export.label}</span>
             </Button>
           )}
-          <Button className="gap-2 bg-gradient-to-r text-white from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover">
+          <Button className="gap-2">
             <HEADER_ACTIONS.newSale.icon size={18} />
             <span className="hidden sm:inline">{HEADER_ACTIONS.newSale.label}</span>
           </Button>

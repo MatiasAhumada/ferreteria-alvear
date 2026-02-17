@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ISupplierFormValues } from "@/types/supplier.types";
 
 export const supplierRepository = {
   async findAll() {
@@ -8,7 +9,14 @@ export const supplierRepository = {
       select: {
         id: true,
         name: true,
+        contact: true,
       },
+    });
+  },
+
+  async create(data: ISupplierFormValues) {
+    return prisma.supplier.create({
+      data,
     });
   },
 };

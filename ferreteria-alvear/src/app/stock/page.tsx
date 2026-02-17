@@ -14,26 +14,7 @@ import { supplierClientService } from "@/services/supplier.service";
 import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  barcode: string;
-  stockActual: number;
-  stockMinimo: number;
-  cost: number;
-  price: number;
-  supplier: {
-    id: string;
-    name: string;
-  };
-}
-
-interface Supplier {
-  id: string;
-  name: string;
-}
+import { IProductWithSupplier, PrismaSupplier } from "@/types/product.types";
 
 interface ProductFormData {
   name: string;
@@ -48,10 +29,11 @@ interface ProductFormData {
 }
 
 export default function StockPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<IProductWithSupplier[]>([]);
+  const [suppliers, setSuppliers] = useState<PrismaSupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +49,11 @@ export default function StockPage() {
     profitMargin: "30",
     price: "",
     supplierId: "",
+  });
+
+  const [supplierFormData, setSupplierFormData] = useState({
+    name: "",
+    contact: "",
   });
 
   useEffect(() => {
@@ -109,12 +96,31 @@ export default function StockPage() {
     }
   };
 
+  const handleSubmitSupplier = async () => {
+    try {
+      setSubmitting(true);
+      const newSupplier = await supplierClientService.create({
+        name: supplierFormData.name,
+        contact: supplierFormData.contact || null,
+      });
+      toast.success("Proveedor creado exitosamente");
+      setIsSupplierModalOpen(false);
+      setSupplierFormData({ name: "", contact: "" });
+      await loadSuppliers();
+      setFormData({ ...formData, supplierId: newSupplier.id });
+    } catch (error) {
+      clientErrorHandler(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
       await productClientService.create({
         name: formData.name,
-        description: formData.description || undefined,
+        description: formData.description || null,
         barcode: formData.barcode,
         stockActual: parseInt(formData.stockActual),
         stockMinimo: parseInt(formData.stockMinimo),
@@ -198,7 +204,7 @@ export default function StockPage() {
           </Card>
         </div>
 
-        <DataTable<Product>
+        <DataTable<IProductWithSupplier>
           title="Inventario de Productos"
           columns={[
             {
@@ -225,13 +231,7 @@ export default function StockPage() {
               key: "stock",
               label: "STOCK",
               render: (item) => (
-                <span
-                  className={`font-semibold ${
-                    item.stockActual <= item.stockMinimo ? "text-error" : "text-text"
-                  }`}
-                >
-                  {item.stockActual} unid.
-                </span>
+                <span className={`font-semibold ${item.stockActual <= item.stockMinimo ? "text-error" : "text-text"}`}>{item.stockActual} unid.</span>
               ),
             },
             {
@@ -247,7 +247,7 @@ export default function StockPage() {
           searchPlaceholder="Buscar por nombre o SKU..."
           onSearch={setSearchTerm}
           actions={
-            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2 text-white">
               <PlusSignIcon size={18} />
               Agregar Producto
             </Button>
@@ -263,10 +263,10 @@ export default function StockPage() {
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={submitting}>
+            <Button variant="cancel" onClick={() => setIsModalOpen(false)} disabled={submitting}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button variant="success" onClick={handleSubmit} disabled={submitting}>
               {submitting ? "Guardando..." : "Guardar Producto"}
             </Button>
           </>
@@ -300,8 +300,8 @@ export default function StockPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="flex gap-2">
+            <div className="flex-1">
               <Label>Proveedor</Label>
               <select
                 className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
@@ -316,7 +316,20 @@ export default function StockPage() {
                 ))}
               </select>
             </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsSupplierModalOpen(true)}
+                title="Agregar proveedor"
+              >
+                <PlusSignIcon size={18} />
+              </Button>
+            </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Stock Inicial</Label>
               <Input
@@ -326,7 +339,21 @@ export default function StockPage() {
                 onChange={(e) => setFormData({ ...formData, stockActual: e.target.value })}
               />
             </div>
+
+            <div>
+              <Label>Punto de Pedido</Label>
+              <Input
+                type="number"
+                placeholder="5"
+                value={formData.stockMinimo}
+                onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
+              />
+            </div>
           </div>
+
+          <p className="text-xs text-text-tertiary">
+            El punto de pedido genera alertas cuando el stock llega a ese nivel
+          </p>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -361,6 +388,43 @@ export default function StockPage() {
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
             </div>
+          </div>
+        </div>
+      </GenericModal>
+
+      <GenericModal
+        open={isSupplierModalOpen}
+        onOpenChange={setIsSupplierModalOpen}
+        title="Nuevo Proveedor"
+        description="Agregar un nuevo proveedor al sistema"
+        footer={
+          <>
+            <Button variant="cancel" onClick={() => setIsSupplierModalOpen(false)} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button variant="success" onClick={handleSubmitSupplier} disabled={submitting}>
+              {submitting ? "Guardando..." : "Guardar Proveedor"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <Label>Nombre del Proveedor</Label>
+            <Input
+              placeholder="Ej: Distribuidora ABC"
+              value={supplierFormData.name}
+              onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>Contacto (Opcional)</Label>
+            <Input
+              placeholder="Teléfono, email o persona de contacto"
+              value={supplierFormData.contact}
+              onChange={(e) => setSupplierFormData({ ...supplierFormData, contact: e.target.value })}
+            />
           </div>
         </div>
       </GenericModal>

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { CreateProductInput, UpdateProductInput } from "@/schemas/product.schema";
+import { IProductFormValues } from "@/types/product.types";
 
 export const productRepository = {
   async findAll(search?: string) {
@@ -34,19 +34,45 @@ export const productRepository = {
     });
   },
 
-  async create(data: CreateProductInput) {
+  async create(data: IProductFormValues) {
     return prisma.product.create({
-      data,
+      data: {
+        name: data.name,
+        description: data.description,
+        barcode: data.barcode,
+        stockActual: data.stockActual,
+        stockMinimo: data.stockMinimo,
+        cost: data.cost,
+        profitMargin: data.profitMargin,
+        price: data.price,
+        supplier: {
+          connect: { id: data.supplierId },
+        },
+      },
       include: {
         supplier: true,
       },
     });
   },
 
-  async update(id: string, data: UpdateProductInput) {
+  async update(id: string, data: Partial<IProductFormValues>) {
     return prisma.product.update({
       where: { id },
-      data,
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.barcode && { barcode: data.barcode }),
+        ...(data.stockActual !== undefined && { stockActual: data.stockActual }),
+        ...(data.stockMinimo !== undefined && { stockMinimo: data.stockMinimo }),
+        ...(data.cost && { cost: data.cost }),
+        ...(data.profitMargin && { profitMargin: data.profitMargin }),
+        ...(data.price && { price: data.price }),
+        ...(data.supplierId && {
+          supplier: {
+            connect: { id: data.supplierId },
+          },
+        }),
+      },
       include: {
         supplier: true,
       },

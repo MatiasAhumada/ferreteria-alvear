@@ -1,5 +1,5 @@
 import { productRepository } from "@/server/repository/product.repository";
-import { CreateProductInput, UpdateProductInput } from "@/schemas/product.schema";
+import { IProductFormValues } from "@/types/product.types";
 
 export const productService = {
   async getAllProducts(search?: string) {
@@ -14,7 +14,7 @@ export const productService = {
     return product;
   },
 
-  async createProduct(data: CreateProductInput) {
+  async createProduct(data: IProductFormValues) {
     const existingProduct = await productRepository.findAll(data.barcode);
     if (existingProduct.length > 0) {
       throw new Error("Ya existe un producto con ese código de barras");
@@ -22,7 +22,7 @@ export const productService = {
     return productRepository.create(data);
   },
 
-  async updateProduct(id: string, data: UpdateProductInput) {
+  async updateProduct(id: string, data: Partial<IProductFormValues>) {
     await this.getProductById(id);
     return productRepository.update(id, data);
   },
