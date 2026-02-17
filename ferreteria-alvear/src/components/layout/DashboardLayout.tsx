@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Sidebar } from "./Sidebar";
-import { Notification01Icon, Search01Icon, Menu01Icon } from "hugeicons-react";
-import { Input } from "@/components/ui/input";
+import { NotificationsSidebar } from "./NotificationsSidebar";
+import { Notification01Icon, Menu01Icon } from "hugeicons-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   if (!user) return null;
 
@@ -23,6 +24,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         username={user.username}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+      />
+
+      <NotificationsSidebar
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
       />
 
       <div className="lg:ml-64">
@@ -37,16 +43,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <h2 className="text-xl lg:text-2xl font-bold text-text">Panel de Control</h2>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-4">
-            <div className="relative hidden sm:block w-48 lg:w-80">
-              <Search01Icon size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-              <Input placeholder="Buscar producto, cliente..." className="pl-10 bg-background border-border" />
-            </div>
-            <button className="w-10 h-10 rounded-lg bg-background hover:bg-background-secondary transition-colors flex items-center justify-center relative">
-              <Notification01Icon size={20} className="text-text" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
-            </button>
-          </div>
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 rounded-lg bg-background hover:bg-background-secondary transition-colors flex items-center justify-center relative"
+          >
+            <Notification01Icon size={20} className="text-text" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
+          </button>
         </header>
 
         <main className="p-4 lg:p-8">{children}</main>
