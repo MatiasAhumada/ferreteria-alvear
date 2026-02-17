@@ -78,14 +78,22 @@ export function Sidebar({ userRole, username, isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="p-4 border-t border-primary-light/20">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
-              <span className="font-bold">{username.charAt(0).toUpperCase()}</span>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
+                <span className="font-bold">{username.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <p className="font-medium">{username}</p>
+                <p className="text-xs text-text-inverse/70">{userRole}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">{username}</p>
-              <p className="text-xs text-text-inverse/70">{userRole}</p>
-            </div>
+            <button
+              className="w-10 h-10 hover:bg-primary-light/20 rounded-lg transition-colors flex items-center justify-center"
+              title="Cerrar sesión"
+            >
+              <HugeIcons.Logout01Icon size={20} />
+            </button>
           </div>
         </div>
       </aside>
