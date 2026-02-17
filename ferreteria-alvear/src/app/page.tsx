@@ -1,10 +1,8 @@
 "use client";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import { VendedorDashboard } from "@/components/dashboard/VendedorDashboard";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 import { useAuth } from "@/hooks/useAuth";
-import { Role } from "@prisma/client";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -13,7 +11,7 @@ export default function HomePage() {
 
   return (
     <DashboardLayout>
-      {user.role === Role.ADMIN ? <AdminDashboard /> : <VendedorDashboard />}
+      <Dashboard role={user.role} />
     </DashboardLayout>
   );
 }

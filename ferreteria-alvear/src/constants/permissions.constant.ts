@@ -2,9 +2,8 @@ import { Role } from "@prisma/client";
 
 export const MODULES = {
   DASHBOARD: "dashboard",
-  PRODUCTS: "products",
   SALES: "sales",
-  INVENTORY: "inventory",
+  STOCK: "stock",
   CUSTOMERS: "customers",
   SUPPLIERS: "suppliers",
   BOX: "box",
@@ -15,9 +14,8 @@ export const MODULES = {
 
 export const MODULE_PERMISSIONS: Record<string, Role[]> = {
   [MODULES.DASHBOARD]: [Role.ADMIN, Role.VENDEDOR],
-  [MODULES.PRODUCTS]: [Role.ADMIN],
   [MODULES.SALES]: [Role.ADMIN, Role.VENDEDOR],
-  [MODULES.INVENTORY]: [Role.ADMIN],
+  [MODULES.STOCK]: [Role.ADMIN],
   [MODULES.CUSTOMERS]: [Role.ADMIN, Role.VENDEDOR],
   [MODULES.SUPPLIERS]: [Role.ADMIN],
   [MODULES.BOX]: [Role.ADMIN, Role.VENDEDOR],
@@ -35,22 +33,16 @@ export const ROUTES_BY_ROLE = {
       module: MODULES.DASHBOARD,
     },
     {
-      path: "/products",
-      label: "Productos",
-      icon: "PackageIcon",
-      module: MODULES.PRODUCTS,
-    },
-    {
-      path: "/sales",
-      label: "Ventas",
-      icon: "ShoppingCart01Icon",
-      module: MODULES.SALES,
-    },
-    {
-      path: "/inventory",
+      path: "/stock",
       label: "Stock",
-      icon: "PackageOpenIcon",
-      module: MODULES.INVENTORY,
+      icon: "PackageIcon",
+      module: MODULES.STOCK,
+    },
+    {
+      path: "/suppliers",
+      label: "Proveedores",
+      icon: "TruckDeliveryIcon",
+      module: MODULES.SUPPLIERS,
     },
     {
       path: "/customers",
@@ -59,10 +51,10 @@ export const ROUTES_BY_ROLE = {
       module: MODULES.CUSTOMERS,
     },
     {
-      path: "/suppliers",
-      label: "Proveedores",
-      icon: "TruckDeliveryIcon",
-      module: MODULES.SUPPLIERS,
+      path: "/sales",
+      label: "Ventas",
+      icon: "ShoppingCart01Icon",
+      module: MODULES.SALES,
     },
     {
       path: "/box",
@@ -78,7 +70,7 @@ export const ROUTES_BY_ROLE = {
     },
     {
       path: "/users",
-      label: "Usuarios",
+      label: "Vendedores",
       icon: "UserIcon",
       module: MODULES.USERS,
     },
