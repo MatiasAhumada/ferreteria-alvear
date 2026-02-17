@@ -18,24 +18,24 @@ import {
 export function AdminDashboard() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-text">Resumen Diario</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-text">Resumen Diario</h1>
           <p className="text-text-secondary mt-1">Martes, 24 de Octubre 2023</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="gap-2">
             <Download01Icon size={18} />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
           <Button className="gap-2 bg-gradient-to-r text-white from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover">
             <PlusSignIcon size={18} />
-            Nueva Venta
+            <span className="hidden sm:inline">Nueva Venta</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
@@ -88,26 +88,26 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <Card className="col-span-2 border-0 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <Card className="lg:col-span-2 border-0 shadow-lg">
           <CardHeader className="border-b border-border">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-error/10 rounded-lg flex items-center justify-center">
                   <Alert02Icon size={20} className="text-error" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Alertas de Stock Bajo</CardTitle>
+                  <CardTitle className="text-base lg:text-lg">Alertas de Stock Bajo</CardTitle>
                   <p className="text-sm text-text-secondary">Productos que necesitan reposición urgente.</p>
                 </div>
               </div>
-              <Button variant="link" className="text-primary">
+              <Button variant="link" className="text-primary self-start sm:self-auto">
                 Ver Stock →
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-background-secondary/50">
                 <tr className="text-left text-sm text-text-secondary">
                   <th className="p-4 font-medium">PRODUCTO</th>

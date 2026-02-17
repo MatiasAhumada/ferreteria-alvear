@@ -16,18 +16,18 @@ import {
 export function VendedorDashboard() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-text">Mi Turno</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-text">Mi Turno</h1>
           <p className="text-text-secondary mt-1">Martes, 24 de Octubre 2023</p>
         </div>
         <Button className="gap-2 bg-gradient-to-r text-white from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover">
           <PlusSignIcon size={18} />
-          Nueva Venta
+          <span className="hidden sm:inline">Nueva Venta</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
@@ -59,13 +59,13 @@ export function VendedorDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <Card className="col-span-2 border-0 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <Card className="lg:col-span-2 border-0 shadow-lg">
           <CardHeader className="border-b border-border">
-            <CardTitle className="text-lg">Últimas Ventas</CardTitle>
+            <CardTitle className="text-base lg:text-lg">Últimas Ventas</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full min-w-[500px]">
               <thead className="bg-background-secondary/50">
                 <tr className="text-left text-sm text-text-secondary">
                   <th className="p-4 font-medium">CLIENTE</th>
