@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createProductSchema.parse(body);
 
-    const product = await productService.createProduct(validatedData);
+    const product = await productService.createProduct({
+      ...validatedData,
+      description: validatedData.description || null,
+    });
     return NextResponse.json(product, { status: httpStatus.CREATED });
   } catch (error) {
     return apiErrorHandler({ error: error as ApiError, request });
