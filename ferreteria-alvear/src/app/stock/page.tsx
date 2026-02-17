@@ -14,7 +14,8 @@ import { supplierClientService } from "@/services/supplier.service";
 import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { IProductWithSupplier, PrismaSupplier } from "@/types/product.types";
+import { IProductWithSupplier } from "@/types/product.types";
+import { ISupplier } from "@/types/supplier.types";
 
 interface ProductFormData {
   name: string;
@@ -30,7 +31,7 @@ interface ProductFormData {
 
 export default function StockPage() {
   const [products, setProducts] = useState<IProductWithSupplier[]>([]);
-  const [suppliers, setSuppliers] = useState<PrismaSupplier[]>([]);
+  const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);

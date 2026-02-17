@@ -6,11 +6,6 @@ export const supplierRepository = {
     return prisma.supplier.findMany({
       where: { deletedAt: null },
       orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        contact: true,
-      },
     });
   },
 
