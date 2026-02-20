@@ -18,6 +18,8 @@ import { IProductWithSupplier, IProductFormValues } from "@/types/product.types"
 import { ISupplier } from "@/types/supplier.types";
 import { ICategory } from "@/types/category.types";
 import { categoryClientService } from "@/services/category.service";
+import { BarcodeInput } from "@/components/common/BarcodeInput";
+import { TableActions } from "@/components/common/TableActions";
 
 export default function StockPage() {
   const [products, setProducts] = useState<IProductWithSupplier[]>([]);
@@ -29,6 +31,8 @@ export default function StockPage() {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
+  const [selectedProduct, setSelectedProduct] = useState<IProductWithSupplier | null>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -143,6 +147,29 @@ export default function StockPage() {
     }
   };
 
+  const handleOpenModal = (mode: "create" | "view" | "edit", product?: IProductWithSupplier) => {
+    setModalMode(mode);
+    if (product) {
+      setSelectedProduct(product);
+      setFormData({
+        name: product.name,
+        description: product.description,
+        barcode: product.barcode,
+        stockActual: product.stockActual,
+        stockMinimo: product.stockMinimo,
+        cost: Number(product.cost),
+        profitMargin: Number(product.profitMargin),
+        price: Number(product.price),
+        supplierId: product.supplierId,
+        categoryId: product.categoryId,
+      });
+    } else {
+      setSelectedProduct(null);
+      resetForm();
+    }
+    setIsModalOpen(true);
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -211,8 +238,9 @@ export default function StockPage() {
             {
               key: "name",
               label: "PRODUCTO",
+              className: "w-1/6 text-center",
               render: (item) => (
-                <div>
+                <div className="text-center">
                   <p className="font-medium text-text">{item.name}</p>
                   <p className="text-xs text-text-secondary">{item.description}</p>
                 </div>
@@ -221,21 +249,25 @@ export default function StockPage() {
             {
               key: "barcode",
               label: "SKU",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text-secondary">{item.barcode}</span>,
             },
             {
               key: "category",
               label: "CATEGORÍA",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text-secondary">{item.category.name}</span>,
             },
             {
               key: "supplier",
               label: "PROVEEDOR",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text-secondary">{item.supplier.name}</span>,
             },
             {
               key: "stock",
               label: "STOCK",
+              className: "w-1/6 text-center",
               render: (item) => (
                 <span className={`font-semibold ${item.stockActual <= item.stockMinimo ? "text-error" : "text-text"}`}>{item.stockActual} unid.</span>
               ),
@@ -243,7 +275,37 @@ export default function StockPage() {
             {
               key: "price",
               label: "PRECIO",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text font-semibold">${Number(item.price).toFixed(2)}</span>,
+            },
+            {
+              key: "actions",
+              label: "ACCIONES",
+              className: "w-1/6 text-center",
+              render: (item) => (
+                <div className="flex justify-center">
+                  <TableActions
+                    actions={[
+                      {
+                        label: "Ver",
+                        icon: "view",
+                        onClick: () => handleOpenModal("view", item),
+                      },
+                      {
+                        label: "Editar",
+                        icon: "edit",
+                        onClick: () => handleOpenModal("edit", item),
+                      },
+                      {
+                        label: "Eliminar",
+                        icon: "delete",
+                        variant: "destructive",
+                        onClick: () => console.log("Eliminar", item.id),
+                      },
+                    ]}
+                  />
+                </div>
+              ),
             },
           ]}
           data={products}
@@ -253,7 +315,7 @@ export default function StockPage() {
           searchPlaceholder="Buscar por nombre o SKU..."
           onSearch={setSearchTerm}
           actions={
-            <Button onClick={() => setIsModalOpen(true)} className="gap-2 text-white">
+            <Button onClick={() => handleOpenModal("create")} className="gap-2 text-white">
               <PlusSignIcon size={18} />
               Agregar Producto
             </Button>
@@ -264,18 +326,34 @@ export default function StockPage() {
       <GenericModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        title="Nueva Carga de Producto"
-        description="Complete los datos para agregar un nuevo ítem al inventario"
+        title={
+          modalMode === "create"
+            ? "Nueva Carga de Producto"
+            : modalMode === "view"
+            ? "Detalle del Producto"
+            : "Editar Producto"
+        }
+        description={
+          modalMode === "create"
+            ? "Complete los datos para agregar un nuevo ítem al inventario"
+            : modalMode === "view"
+            ? "Información del producto"
+            : "Modifique los datos del producto"
+        }
         size="lg"
         footer={
-          <>
-            <Button variant="cancel" onClick={() => setIsModalOpen(false)} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button variant="success" onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Guardando..." : "Guardar Producto"}
-            </Button>
-          </>
+          modalMode !== "view" ? (
+            <>
+              <Button variant="cancel" onClick={() => setIsModalOpen(false)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button variant="success" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? "Guardando..." : "Guardar Producto"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setIsModalOpen(false)}>Cerrar</Button>
+          )
         }
       >
         <div className="space-y-4">
@@ -285,6 +363,7 @@ export default function StockPage() {
               placeholder="Ej: Taladro Percutor 600W"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled={modalMode === "view"}
             />
           </div>
 
@@ -294,17 +373,15 @@ export default function StockPage() {
               placeholder="Descripción del producto"
               value={formData.description || ""}
               onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
+              disabled={modalMode === "view"}
             />
           </div>
 
-          <div>
-            <Label>Código de Barras / SKU</Label>
-            <Input
-              placeholder="Código único del producto"
-              value={formData.barcode}
-              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-            />
-          </div>
+          <BarcodeInput
+            value={formData.barcode}
+            onChange={(barcode) => setFormData({ ...formData, barcode })}
+            disabled={submitting || modalMode === "view"}
+          />
 
           <div>
             <Label>Categoría</Label>
@@ -312,6 +389,7 @@ export default function StockPage() {
               className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
               value={formData.categoryId}
               onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+              disabled={modalMode === "view"}
             >
               <option value="">Seleccionar categoría</option>
               {categories.map((category) => (
@@ -329,6 +407,7 @@ export default function StockPage() {
                 className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
                 value={formData.supplierId}
                 onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                disabled={modalMode === "view"}
               >
                 <option value="">Seleccionar proveedor</option>
                 {suppliers.map((supplier) => (
@@ -338,11 +417,13 @@ export default function StockPage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-end">
-              <Button type="button" variant="outline" size="icon" onClick={() => setIsSupplierModalOpen(true)} title="Agregar proveedor">
-                <PlusSignIcon size={18} />
-              </Button>
-            </div>
+            {modalMode !== "view" && (
+              <div className="flex items-end">
+                <Button type="button" variant="outline" size="icon" onClick={() => setIsSupplierModalOpen(true)} title="Agregar proveedor">
+                  <PlusSignIcon size={18} />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -351,8 +432,9 @@ export default function StockPage() {
               <Input
                 type="number"
                 placeholder="0"
-                value={formData.stockActual}
-                onChange={(e) => setFormData({ ...formData, stockActual: Number(e.target.value) })}
+                value={formData.stockActual || ""}
+                onChange={(e) => setFormData({ ...formData, stockActual: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -361,8 +443,9 @@ export default function StockPage() {
               <Input
                 type="number"
                 placeholder="5"
-                value={formData.stockMinimo}
-                onChange={(e) => setFormData({ ...formData, stockMinimo: Number(e.target.value) })}
+                value={formData.stockMinimo || ""}
+                onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
           </div>
@@ -376,8 +459,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="$ 0.00"
-                value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                value={formData.cost || ""}
+                onChange={(e) => setFormData({ ...formData, cost: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -387,8 +471,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="30"
-                value={formData.profitMargin}
-                onChange={(e) => setFormData({ ...formData, profitMargin: Number(e.target.value) })}
+                value={formData.profitMargin || ""}
+                onChange={(e) => setFormData({ ...formData, profitMargin: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -398,8 +483,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="$ 0.00"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                value={formData.price || ""}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
           </div>
