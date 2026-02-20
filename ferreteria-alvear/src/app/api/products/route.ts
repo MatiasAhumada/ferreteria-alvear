@@ -8,6 +8,12 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || undefined;
+    const stats = searchParams.get("stats");
+
+    if (stats) {
+      const productStats = await productService.getProductStats();
+      return NextResponse.json(productStats, { status: httpStatus.OK });
+    }
 
     const products = await productService.getAllProducts(search);
     return NextResponse.json(products, { status: httpStatus.OK });

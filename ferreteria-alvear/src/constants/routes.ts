@@ -29,6 +29,7 @@ export const API_ROUTES = {
   },
   PRODUCTS: "/api/products",
   SUPPLIERS: "/api/suppliers",
+  CATEGORIES: "/api/categories",
   SALES: "/api/sales",
   CUSTOMERS: "/api/customers",
   REPORTS: "/api/reports",

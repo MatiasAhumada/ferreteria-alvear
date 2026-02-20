@@ -14,24 +14,16 @@ import { supplierClientService } from "@/services/supplier.service";
 import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { IProductWithSupplier } from "@/types/product.types";
+import { IProductWithSupplier, IProductFormValues } from "@/types/product.types";
 import { ISupplier } from "@/types/supplier.types";
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  barcode: string;
-  stockActual: string;
-  stockMinimo: string;
-  cost: string;
-  profitMargin: string;
-  price: string;
-  supplierId: string;
-}
+import { ICategory } from "@/types/category.types";
+import { categoryClientService } from "@/services/category.service";
 
 export default function StockPage() {
   const [products, setProducts] = useState<IProductWithSupplier[]>([]);
   const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [stats, setStats] = useState({ totalProducts: 0, totalValue: 0, criticalStock: 0 });
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
@@ -40,16 +32,17 @@ export default function StockPage() {
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<IProductFormValues>({
     name: "",
-    description: "",
+    description: null,
     barcode: "",
-    stockActual: "0",
-    stockMinimo: "5",
-    cost: "",
-    profitMargin: "30",
-    price: "",
+    stockActual: 0,
+    stockMinimo: 5,
+    cost: 0,
+    profitMargin: 30,
+    price: 0,
     supplierId: "",
+    categoryId: "",
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
@@ -59,6 +52,8 @@ export default function StockPage() {
 
   useEffect(() => {
     loadSuppliers();
+    loadCategories();
+    loadStats();
   }, []);
 
   useEffect(() => {
@@ -66,13 +61,11 @@ export default function StockPage() {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    if (formData.cost && formData.profitMargin) {
-      const cost = parseFloat(formData.cost);
-      const margin = parseFloat(formData.profitMargin);
-      if (!isNaN(cost) && !isNaN(margin)) {
-        const price = cost * (1 + margin / 100);
-        setFormData((prev) => ({ ...prev, price: price.toFixed(2) }));
-      }
+    const cost = formData.cost;
+    const margin = formData.profitMargin;
+    if (cost > 0 && margin >= 0) {
+      const price = cost * (1 + margin / 100);
+      setFormData((prev) => ({ ...prev, price: Number(price.toFixed(2)) }));
     }
   }, [formData.cost, formData.profitMargin]);
 
@@ -92,6 +85,24 @@ export default function StockPage() {
     try {
       const data = await supplierClientService.getAll();
       setSuppliers(data);
+    } catch (error) {
+      clientErrorHandler(error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoryClientService.getAll();
+      setCategories(data);
+    } catch (error) {
+      clientErrorHandler(error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const data = await productClientService.getStats();
+      setStats(data);
     } catch (error) {
       clientErrorHandler(error);
     }
@@ -119,21 +130,12 @@ export default function StockPage() {
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      await productClientService.create({
-        name: formData.name,
-        description: formData.description || null,
-        barcode: formData.barcode,
-        stockActual: parseInt(formData.stockActual),
-        stockMinimo: parseInt(formData.stockMinimo),
-        cost: parseFloat(formData.cost),
-        profitMargin: parseFloat(formData.profitMargin),
-        price: parseFloat(formData.price),
-        supplierId: formData.supplierId,
-      });
+      await productClientService.create(formData);
       toast.success("Producto creado exitosamente");
       setIsModalOpen(false);
       resetForm();
       loadProducts();
+      loadStats();
     } catch (error) {
       clientErrorHandler(error);
     } finally {
@@ -144,19 +146,17 @@ export default function StockPage() {
   const resetForm = () => {
     setFormData({
       name: "",
-      description: "",
+      description: null,
       barcode: "",
-      stockActual: "0",
-      stockMinimo: "5",
-      cost: "",
-      profitMargin: "30",
-      price: "",
+      stockActual: 0,
+      stockMinimo: 5,
+      cost: 0,
+      profitMargin: 30,
+      price: 0,
       supplierId: "",
+      categoryId: "",
     });
   };
-
-  const criticalStock = products.filter((p) => p.stockActual <= p.stockMinimo).length;
-  const totalValue = products.reduce((sum, p) => sum + p.stockActual * Number(p.price), 0);
 
   return (
     <DashboardLayout>
@@ -167,7 +167,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Total Productos</p>
-                  <h3 className="text-3xl font-bold text-text">{products.length}</h3>
+                  <h3 className="text-3xl font-bold text-text">{stats.totalProducts}</h3>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                   <PackageIcon size={24} className="text-primary" />
@@ -181,7 +181,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Valor de Inventario</p>
-                  <h3 className="text-3xl font-bold text-text">${totalValue.toFixed(0)}</h3>
+                  <h3 className="text-3xl font-bold text-text">${stats.totalValue.toFixed(0)}</h3>
                 </div>
                 <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
                   <DollarCircleIcon size={24} className="text-success" />
@@ -195,7 +195,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Stock Crítico</p>
-                  <h3 className="text-3xl font-bold text-text">{criticalStock}</h3>
+                  <h3 className="text-3xl font-bold text-text">{stats.criticalStock}</h3>
                 </div>
                 <div className="w-12 h-12 bg-error/10 rounded-xl flex items-center justify-center">
                   <Alert02Icon size={24} className="text-error" />
@@ -222,6 +222,11 @@ export default function StockPage() {
               key: "barcode",
               label: "SKU",
               render: (item) => <span className="text-text-secondary">{item.barcode}</span>,
+            },
+            {
+              key: "category",
+              label: "CATEGORÍA",
+              render: (item) => <span className="text-text-secondary">{item.category.name}</span>,
             },
             {
               key: "supplier",
@@ -287,8 +292,8 @@ export default function StockPage() {
             <Label>Descripción (Opcional)</Label>
             <Input
               placeholder="Descripción del producto"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              value={formData.description || ""}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
             />
           </div>
 
@@ -299,6 +304,22 @@ export default function StockPage() {
               value={formData.barcode}
               onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
             />
+          </div>
+
+          <div>
+            <Label>Categoría</Label>
+            <select
+              className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
+              value={formData.categoryId}
+              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+            >
+              <option value="">Seleccionar categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-2">
@@ -318,13 +339,7 @@ export default function StockPage() {
               </select>
             </div>
             <div className="flex items-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsSupplierModalOpen(true)}
-                title="Agregar proveedor"
-              >
+              <Button type="button" variant="outline" size="icon" onClick={() => setIsSupplierModalOpen(true)} title="Agregar proveedor">
                 <PlusSignIcon size={18} />
               </Button>
             </div>
@@ -337,7 +352,7 @@ export default function StockPage() {
                 type="number"
                 placeholder="0"
                 value={formData.stockActual}
-                onChange={(e) => setFormData({ ...formData, stockActual: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, stockActual: Number(e.target.value) })}
               />
             </div>
 
@@ -347,14 +362,12 @@ export default function StockPage() {
                 type="number"
                 placeholder="5"
                 value={formData.stockMinimo}
-                onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, stockMinimo: Number(e.target.value) })}
               />
             </div>
           </div>
 
-          <p className="text-xs text-text-tertiary">
-            El punto de pedido genera alertas cuando el stock llega a ese nivel
-          </p>
+          <p className="text-xs text-text-tertiary">El punto de pedido genera alertas cuando el stock llega a ese nivel</p>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -364,7 +377,7 @@ export default function StockPage() {
                 step="0.01"
                 placeholder="$ 0.00"
                 value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
               />
             </div>
 
@@ -375,7 +388,7 @@ export default function StockPage() {
                 step="0.01"
                 placeholder="30"
                 value={formData.profitMargin}
-                onChange={(e) => setFormData({ ...formData, profitMargin: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, profitMargin: Number(e.target.value) })}
               />
             </div>
 
@@ -386,7 +399,7 @@ export default function StockPage() {
                 step="0.01"
                 placeholder="$ 0.00"
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
               />
             </div>
           </div>

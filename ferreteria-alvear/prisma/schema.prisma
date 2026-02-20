@@ -91,6 +91,18 @@ model Client {
   @@map("clients")
 }
 
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products Product[]
+
+  @@map("categories")
+}
+
 model Product {
   id              String    @id @default(cuid())
   name            String
@@ -107,6 +119,8 @@ model Product {
 
   supplierId  String
   supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
   saleDetails SaleDetail[]
 
   @@map("products")

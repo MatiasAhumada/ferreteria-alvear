@@ -10,6 +10,7 @@ export const createProductSchema = z.object({
   profitMargin: z.number().min(0, "El margen debe ser mayor o igual a 0"),
   price: z.number().positive("El precio debe ser mayor a 0"),
   supplierId: z.string().min(1, "El proveedor es requerido"),
+  categoryId: z.string().min(1, "La categoría es requerida"),
 });
 
 export const updateProductSchema = createProductSchema.partial();

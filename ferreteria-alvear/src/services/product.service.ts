@@ -9,6 +9,11 @@ export const productClientService = {
     return response.data;
   },
 
+  async getStats() {
+    const response = await clientAxios.get(API_ROUTES.PRODUCTS, { params: { stats: true } });
+    return response.data;
+  },
+
   async create(data: IProductFormValues) {
     const response = await clientAxios.post(API_ROUTES.PRODUCTS, data);
     return response.data;
