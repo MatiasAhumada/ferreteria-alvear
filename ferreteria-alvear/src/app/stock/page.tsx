@@ -8,48 +8,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlusSignIcon, PackageIcon, DollarCircleIcon, Alert02Icon } from "hugeicons-react";
+import { PlusSignIcon, PackageIcon, DollarCircleIcon, Alert02Icon, PrinterIcon } from "hugeicons-react";
 import { productClientService } from "@/services/product.service";
 import { supplierClientService } from "@/services/supplier.service";
-import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
-import { toast } from "sonner";
+import { clientErrorHandler, clientSuccessHandler } from "@/utils/handlers/clientError.handler";
+import { SUCCESS_MESSAGES } from "@/constants/success-messages.constant";
 import { useDebounce } from "@/hooks/useDebounce";
-import { IProductWithSupplier } from "@/types/product.types";
+import { IProductWithSupplier, IProductFormValues } from "@/types/product.types";
 import { ISupplier } from "@/types/supplier.types";
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  barcode: string;
-  stockActual: string;
-  stockMinimo: string;
-  cost: string;
-  profitMargin: string;
-  price: string;
-  supplierId: string;
-}
+import { ICategory } from "@/types/category.types";
+import { categoryClientService } from "@/services/category.service";
+import { BarcodeInput } from "@/components/common/BarcodeInput";
+import { TableActions } from "@/components/common/TableActions";
+import { generateBarcodeCatalogPDF } from "@/utils/pdf/barcodeCatalog.util";
 
 export default function StockPage() {
   const [products, setProducts] = useState<IProductWithSupplier[]>([]);
   const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [stats, setStats] = useState({ totalProducts: 0, totalValue: 0, criticalStock: 0 });
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
+  const [selectedProduct, setSelectedProduct] = useState<IProductWithSupplier | null>(null);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<IProductFormValues>({
     name: "",
-    description: "",
+    description: null,
     barcode: "",
-    stockActual: "0",
-    stockMinimo: "5",
-    cost: "",
-    profitMargin: "30",
-    price: "",
+    stockActual: 0,
+    stockMinimo: 5,
+    cost: 0,
+    profitMargin: 30,
+    price: 0,
     supplierId: "",
+    categoryId: "",
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
@@ -59,6 +58,8 @@ export default function StockPage() {
 
   useEffect(() => {
     loadSuppliers();
+    loadCategories();
+    loadStats();
   }, []);
 
   useEffect(() => {
@@ -66,13 +67,11 @@ export default function StockPage() {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    if (formData.cost && formData.profitMargin) {
-      const cost = parseFloat(formData.cost);
-      const margin = parseFloat(formData.profitMargin);
-      if (!isNaN(cost) && !isNaN(margin)) {
-        const price = cost * (1 + margin / 100);
-        setFormData((prev) => ({ ...prev, price: price.toFixed(2) }));
-      }
+    const cost = formData.cost;
+    const margin = formData.profitMargin;
+    if (cost > 0 && margin >= 0) {
+      const price = cost * (1 + margin / 100);
+      setFormData((prev) => ({ ...prev, price: Number(price.toFixed(2)) }));
     }
   }, [formData.cost, formData.profitMargin]);
 
@@ -97,6 +96,24 @@ export default function StockPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const data = await categoryClientService.getAll();
+      setCategories(data);
+    } catch (error) {
+      clientErrorHandler(error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const data = await productClientService.getStats();
+      setStats(data);
+    } catch (error) {
+      clientErrorHandler(error);
+    }
+  };
+
   const handleSubmitSupplier = async () => {
     try {
       setSubmitting(true);
@@ -104,7 +121,7 @@ export default function StockPage() {
         name: supplierFormData.name,
         contact: supplierFormData.contact || null,
       });
-      toast.success("Proveedor creado exitosamente");
+      clientSuccessHandler(SUCCESS_MESSAGES.SUPPLIER_CREATED);
       setIsSupplierModalOpen(false);
       setSupplierFormData({ name: "", contact: "" });
       await loadSuppliers();
@@ -119,21 +136,12 @@ export default function StockPage() {
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      await productClientService.create({
-        name: formData.name,
-        description: formData.description || null,
-        barcode: formData.barcode,
-        stockActual: parseInt(formData.stockActual),
-        stockMinimo: parseInt(formData.stockMinimo),
-        cost: parseFloat(formData.cost),
-        profitMargin: parseFloat(formData.profitMargin),
-        price: parseFloat(formData.price),
-        supplierId: formData.supplierId,
-      });
-      toast.success("Producto creado exitosamente");
+      await productClientService.create(formData);
+      clientSuccessHandler(SUCCESS_MESSAGES.PRODUCT_CREATED);
       setIsModalOpen(false);
       resetForm();
       loadProducts();
+      loadStats();
     } catch (error) {
       clientErrorHandler(error);
     } finally {
@@ -141,22 +149,55 @@ export default function StockPage() {
     }
   };
 
+  const handleOpenModal = (mode: "create" | "view" | "edit", product?: IProductWithSupplier) => {
+    setModalMode(mode);
+    if (product) {
+      setSelectedProduct(product);
+      setFormData({
+        name: product.name,
+        description: product.description,
+        barcode: product.barcode,
+        stockActual: product.stockActual,
+        stockMinimo: product.stockMinimo,
+        cost: Number(product.cost),
+        profitMargin: Number(product.profitMargin),
+        price: Number(product.price),
+        supplierId: product.supplierId,
+        categoryId: product.categoryId,
+      });
+    } else {
+      setSelectedProduct(null);
+      resetForm();
+    }
+    setIsModalOpen(true);
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
-      description: "",
+      description: null,
       barcode: "",
-      stockActual: "0",
-      stockMinimo: "5",
-      cost: "",
-      profitMargin: "30",
-      price: "",
+      stockActual: 0,
+      stockMinimo: 5,
+      cost: 0,
+      profitMargin: 30,
+      price: 0,
       supplierId: "",
+      categoryId: "",
     });
   };
 
-  const criticalStock = products.filter((p) => p.stockActual <= p.stockMinimo).length;
-  const totalValue = products.reduce((sum, p) => sum + p.stockActual * Number(p.price), 0);
+  const handleGeneratePDF = async () => {
+    try {
+      setGeneratingPDF(true);
+      await generateBarcodeCatalogPDF();
+      clientSuccessHandler(SUCCESS_MESSAGES.PDF_GENERATED);
+    } catch (error) {
+      clientErrorHandler(error);
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -167,7 +208,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Total Productos</p>
-                  <h3 className="text-3xl font-bold text-text">{products.length}</h3>
+                  <h3 className="text-3xl font-bold text-text">{stats.totalProducts}</h3>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                   <PackageIcon size={24} className="text-primary" />
@@ -181,7 +222,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Valor de Inventario</p>
-                  <h3 className="text-3xl font-bold text-text">${totalValue.toFixed(0)}</h3>
+                  <h3 className="text-3xl font-bold text-text">${stats.totalValue.toFixed(0)}</h3>
                 </div>
                 <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
                   <DollarCircleIcon size={24} className="text-success" />
@@ -195,7 +236,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-text-secondary text-sm mb-2">Stock Crítico</p>
-                  <h3 className="text-3xl font-bold text-text">{criticalStock}</h3>
+                  <h3 className="text-3xl font-bold text-text">{stats.criticalStock}</h3>
                 </div>
                 <div className="w-12 h-12 bg-error/10 rounded-xl flex items-center justify-center">
                   <Alert02Icon size={24} className="text-error" />
@@ -211,8 +252,9 @@ export default function StockPage() {
             {
               key: "name",
               label: "PRODUCTO",
+              className: "w-1/6 text-center",
               render: (item) => (
-                <div>
+                <div className="text-center">
                   <p className="font-medium text-text">{item.name}</p>
                   <p className="text-xs text-text-secondary">{item.description}</p>
                 </div>
@@ -221,16 +263,25 @@ export default function StockPage() {
             {
               key: "barcode",
               label: "SKU",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text-secondary">{item.barcode}</span>,
+            },
+            {
+              key: "category",
+              label: "CATEGORÍA",
+              className: "w-1/6 text-center",
+              render: (item) => <span className="text-text-secondary">{item.category.name}</span>,
             },
             {
               key: "supplier",
               label: "PROVEEDOR",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text-secondary">{item.supplier.name}</span>,
             },
             {
               key: "stock",
               label: "STOCK",
+              className: "w-1/6 text-center",
               render: (item) => (
                 <span className={`font-semibold ${item.stockActual <= item.stockMinimo ? "text-error" : "text-text"}`}>{item.stockActual} unid.</span>
               ),
@@ -238,7 +289,37 @@ export default function StockPage() {
             {
               key: "price",
               label: "PRECIO",
+              className: "w-1/6 text-center",
               render: (item) => <span className="text-text font-semibold">${Number(item.price).toFixed(2)}</span>,
+            },
+            {
+              key: "actions",
+              label: "ACCIONES",
+              className: "w-1/6 text-center",
+              render: (item) => (
+                <div className="flex justify-center">
+                  <TableActions
+                    actions={[
+                      {
+                        label: "Ver",
+                        icon: "view",
+                        onClick: () => handleOpenModal("view", item),
+                      },
+                      {
+                        label: "Editar",
+                        icon: "edit",
+                        onClick: () => handleOpenModal("edit", item),
+                      },
+                      {
+                        label: "Eliminar",
+                        icon: "delete",
+                        variant: "destructive",
+                        onClick: () => console.log("Eliminar", item.id),
+                      },
+                    ]}
+                  />
+                </div>
+              ),
             },
           ]}
           data={products}
@@ -248,10 +329,21 @@ export default function StockPage() {
           searchPlaceholder="Buscar por nombre o SKU..."
           onSearch={setSearchTerm}
           actions={
-            <Button onClick={() => setIsModalOpen(true)} className="gap-2 text-white">
-              <PlusSignIcon size={18} />
-              Agregar Producto
-            </Button>
+            <>
+              <Button
+                onClick={handleGeneratePDF}
+                disabled={generatingPDF || products.length === 0}
+                variant="outline"
+                className="gap-2"
+              >
+                <PrinterIcon size={18} />
+                {generatingPDF ? "Generando..." : "Imprimir Etiquetas"}
+              </Button>
+              <Button onClick={() => handleOpenModal("create")} className="gap-2 text-white">
+                <PlusSignIcon size={18} />
+                Agregar Producto
+              </Button>
+            </>
           }
         />
       </div>
@@ -259,18 +351,34 @@ export default function StockPage() {
       <GenericModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        title="Nueva Carga de Producto"
-        description="Complete los datos para agregar un nuevo ítem al inventario"
+        title={
+          modalMode === "create"
+            ? "Nueva Carga de Producto"
+            : modalMode === "view"
+            ? "Detalle del Producto"
+            : "Editar Producto"
+        }
+        description={
+          modalMode === "create"
+            ? "Complete los datos para agregar un nuevo ítem al inventario"
+            : modalMode === "view"
+            ? "Información del producto"
+            : "Modifique los datos del producto"
+        }
         size="lg"
         footer={
-          <>
-            <Button variant="cancel" onClick={() => setIsModalOpen(false)} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button variant="success" onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Guardando..." : "Guardar Producto"}
-            </Button>
-          </>
+          modalMode !== "view" ? (
+            <>
+              <Button variant="cancel" onClick={() => setIsModalOpen(false)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button variant="success" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? "Guardando..." : "Guardar Producto"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setIsModalOpen(false)}>Cerrar</Button>
+          )
         }
       >
         <div className="space-y-4">
@@ -280,6 +388,7 @@ export default function StockPage() {
               placeholder="Ej: Taladro Percutor 600W"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled={modalMode === "view"}
             />
           </div>
 
@@ -287,18 +396,33 @@ export default function StockPage() {
             <Label>Descripción (Opcional)</Label>
             <Input
               placeholder="Descripción del producto"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              value={formData.description || ""}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
+              disabled={modalMode === "view"}
             />
           </div>
 
+          <BarcodeInput
+            value={formData.barcode}
+            onChange={(barcode) => setFormData({ ...formData, barcode })}
+            disabled={submitting || modalMode === "view"}
+          />
+
           <div>
-            <Label>Código de Barras / SKU</Label>
-            <Input
-              placeholder="Código único del producto"
-              value={formData.barcode}
-              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-            />
+            <Label>Categoría</Label>
+            <select
+              className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
+              value={formData.categoryId}
+              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+              disabled={modalMode === "view"}
+            >
+              <option value="">Seleccionar categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-2">
@@ -308,6 +432,7 @@ export default function StockPage() {
                 className="w-full h-10 px-3 rounded-md border border-border bg-background text-text"
                 value={formData.supplierId}
                 onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                disabled={modalMode === "view"}
               >
                 <option value="">Seleccionar proveedor</option>
                 {suppliers.map((supplier) => (
@@ -317,17 +442,13 @@ export default function StockPage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsSupplierModalOpen(true)}
-                title="Agregar proveedor"
-              >
-                <PlusSignIcon size={18} />
-              </Button>
-            </div>
+            {modalMode !== "view" && (
+              <div className="flex items-end">
+                <Button type="button" variant="outline" size="icon" onClick={() => setIsSupplierModalOpen(true)} title="Agregar proveedor">
+                  <PlusSignIcon size={18} />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -336,8 +457,9 @@ export default function StockPage() {
               <Input
                 type="number"
                 placeholder="0"
-                value={formData.stockActual}
-                onChange={(e) => setFormData({ ...formData, stockActual: e.target.value })}
+                value={formData.stockActual || ""}
+                onChange={(e) => setFormData({ ...formData, stockActual: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -346,15 +468,14 @@ export default function StockPage() {
               <Input
                 type="number"
                 placeholder="5"
-                value={formData.stockMinimo}
-                onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
+                value={formData.stockMinimo || ""}
+                onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
           </div>
 
-          <p className="text-xs text-text-tertiary">
-            El punto de pedido genera alertas cuando el stock llega a ese nivel
-          </p>
+          <p className="text-xs text-text-tertiary">El punto de pedido genera alertas cuando el stock llega a ese nivel</p>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -363,8 +484,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="$ 0.00"
-                value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                value={formData.cost || ""}
+                onChange={(e) => setFormData({ ...formData, cost: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -374,8 +496,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="30"
-                value={formData.profitMargin}
-                onChange={(e) => setFormData({ ...formData, profitMargin: e.target.value })}
+                value={formData.profitMargin || ""}
+                onChange={(e) => setFormData({ ...formData, profitMargin: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
 
@@ -385,8 +508,9 @@ export default function StockPage() {
                 type="number"
                 step="0.01"
                 placeholder="$ 0.00"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                value={formData.price || ""}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value ? Number(e.target.value) : 0 })}
+                disabled={modalMode === "view"}
               />
             </div>
           </div>

@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlusSignIcon, TruckDeliveryIcon } from "hugeicons-react";
 import { supplierClientService } from "@/services/supplier.service";
-import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
-import { toast } from "sonner";
+import { clientErrorHandler, clientSuccessHandler } from "@/utils/handlers/clientError.handler";
+import { SUCCESS_MESSAGES } from "@/constants/success-messages.constant";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ISupplier } from "@/types/supplier.types";
 import { formatDate } from "@/utils/formatters/date.formatter";
@@ -58,7 +58,7 @@ export default function SuppliersPage() {
         name: formData.name,
         contact: formData.contact || null,
       });
-      toast.success("Proveedor creado exitosamente");
+      clientSuccessHandler(SUCCESS_MESSAGES.SUPPLIER_CREATED);
       setIsModalOpen(false);
       resetForm();
       loadSuppliers();

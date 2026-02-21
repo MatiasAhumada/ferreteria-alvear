@@ -20,6 +20,12 @@ export const productRepository = {
             name: true,
           },
         },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -30,6 +36,7 @@ export const productRepository = {
       where: { id, deletedAt: null },
       include: {
         supplier: true,
+        category: true,
       },
     });
   },
@@ -48,9 +55,13 @@ export const productRepository = {
         supplier: {
           connect: { id: data.supplierId },
         },
+        category: {
+          connect: { id: data.categoryId },
+        },
       },
       include: {
         supplier: true,
+        category: true,
       },
     });
   },
@@ -72,9 +83,15 @@ export const productRepository = {
             connect: { id: data.supplierId },
           },
         }),
+        ...(data.categoryId && {
+          category: {
+            connect: { id: data.categoryId },
+          },
+        }),
       },
       include: {
         supplier: true,
+        category: true,
       },
     });
   },
@@ -87,26 +104,29 @@ export const productRepository = {
   },
 
   async getStats() {
-    const products = await prisma.product.findMany({
-      where: { deletedAt: null },
-      select: {
-        stockActual: true,
-        stockMinimo: true,
-        price: true,
-      },
-    });
-
-    const totalValue = products.reduce(
-      (sum, p) => sum + p.stockActual * Number(p.price),
-      0
-    );
-
-    const criticalStock = products.filter(
-      (p) => p.stockActual <= p.stockMinimo
-    ).length;
+    const [totalValue, criticalStock, totalProducts] = await Promise.all([
+      prisma.product.aggregate({
+        where: { deletedAt: null },
+        _sum: {
+          stockActual: true,
+        },
+      }),
+      prisma.product.count({
+        where: {
+          deletedAt: null,
+          stockActual: {
+            lte: prisma.product.fields.stockMinimo,
+          },
+        },
+      }),
+      prisma.product.count({
+        where: { deletedAt: null },
+      }),
+    ]);
 
     return {
-      totalValue,
+      totalProducts,
+      totalValue: totalValue._sum.stockActual || 0,
       criticalStock,
     };
   },

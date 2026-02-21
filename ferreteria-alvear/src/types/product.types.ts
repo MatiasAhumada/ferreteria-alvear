@@ -1,9 +1,13 @@
-import { Product as PrismaProduct, Supplier as PrismaSupplier } from "@prisma/client";
+import { Product as PrismaProduct, Supplier as PrismaSupplier, Category as PrismaCategory } from "@prisma/client";
 
-export type { PrismaProduct, PrismaSupplier };
+export type { PrismaProduct, PrismaSupplier, PrismaCategory };
 
 export interface IProductWithSupplier extends PrismaProduct {
   supplier: {
+    id: string;
+    name: string;
+  };
+  category: {
     id: string;
     name: string;
   };
@@ -11,10 +15,11 @@ export interface IProductWithSupplier extends PrismaProduct {
 
 export interface IProductFormValues extends Omit<
   PrismaProduct,
-  "id" | "createdAt" | "updatedAt" | "deletedAt" | "supplierId" | "cost" | "profitMargin" | "price"
+  "id" | "createdAt" | "updatedAt" | "deletedAt" | "supplierId" | "categoryId" | "cost" | "profitMargin" | "price"
 > {
   cost: number;
   profitMargin: number;
   price: number;
   supplierId: string;
+  categoryId: string;
 }
