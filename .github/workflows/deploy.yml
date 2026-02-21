@@ -19,10 +19,11 @@ jobs:
           script: |
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            cd ferreteria-alvear/ferreteria-alvear
+            cd ferreteria-alvear/
             git fetch origin main
             git reset --hard origin/main
             git clean -fd -e .next
+            cd ferreteria-alvear/
             corepack enable
             corepack prepare pnpm@latest --activate
             pnpm install
