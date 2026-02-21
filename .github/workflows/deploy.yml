@@ -30,6 +30,4 @@ jobs:
             pnpm prisma generate
             pnpm migrate
             pnpm build
-            pm2 delete ferreteria-alvear 2>/dev/null || true
-            pm2 start "pnpm start" --name ferreteria-alvear
-            pm2 save
+            pm2 restart ferreteria-alvear || pm2 start "pnpm start" --name ferreteria-alvear
