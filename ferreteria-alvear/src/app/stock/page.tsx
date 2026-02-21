@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlusSignIcon, PackageIcon, DollarCircleIcon, Alert02Icon } from "hugeicons-react";
+import { PlusSignIcon, PackageIcon, DollarCircleIcon, Alert02Icon, PrinterIcon } from "hugeicons-react";
 import { productClientService } from "@/services/product.service";
 import { supplierClientService } from "@/services/supplier.service";
 import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
@@ -20,6 +20,7 @@ import { ICategory } from "@/types/category.types";
 import { categoryClientService } from "@/services/category.service";
 import { BarcodeInput } from "@/components/common/BarcodeInput";
 import { TableActions } from "@/components/common/TableActions";
+import { generateBarcodeCatalogPDF } from "@/utils/pdf/barcodeCatalog.util";
 
 export default function StockPage() {
   const [products, setProducts] = useState<IProductWithSupplier[]>([]);
@@ -33,6 +34,7 @@ export default function StockPage() {
   const [submitting, setSubmitting] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
   const [selectedProduct, setSelectedProduct] = useState<IProductWithSupplier | null>(null);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -185,6 +187,18 @@ export default function StockPage() {
     });
   };
 
+  const handleGeneratePDF = async () => {
+    try {
+      setGeneratingPDF(true);
+      await generateBarcodeCatalogPDF();
+      toast.success("PDF generado exitosamente");
+    } catch (error) {
+      clientErrorHandler(error);
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -315,10 +329,21 @@ export default function StockPage() {
           searchPlaceholder="Buscar por nombre o SKU..."
           onSearch={setSearchTerm}
           actions={
-            <Button onClick={() => handleOpenModal("create")} className="gap-2 text-white">
-              <PlusSignIcon size={18} />
-              Agregar Producto
-            </Button>
+            <>
+              <Button
+                onClick={handleGeneratePDF}
+                disabled={generatingPDF || products.length === 0}
+                variant="outline"
+                className="gap-2"
+              >
+                <PrinterIcon size={18} />
+                {generatingPDF ? "Generando..." : "Imprimir Etiquetas"}
+              </Button>
+              <Button onClick={() => handleOpenModal("create")} className="gap-2 text-white">
+                <PlusSignIcon size={18} />
+                Agregar Producto
+              </Button>
+            </>
           }
         />
       </div>
