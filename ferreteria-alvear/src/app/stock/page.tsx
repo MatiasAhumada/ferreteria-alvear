@@ -11,8 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlusSignIcon, PackageIcon, DollarCircleIcon, Alert02Icon, PrinterIcon } from "hugeicons-react";
 import { productClientService } from "@/services/product.service";
 import { supplierClientService } from "@/services/supplier.service";
-import { clientErrorHandler } from "@/utils/handlers/clientError.handler";
-import { toast } from "sonner";
+import { clientErrorHandler, clientSuccessHandler } from "@/utils/handlers/clientError.handler";
+import { SUCCESS_MESSAGES } from "@/constants/success-messages.constant";
 import { useDebounce } from "@/hooks/useDebounce";
 import { IProductWithSupplier, IProductFormValues } from "@/types/product.types";
 import { ISupplier } from "@/types/supplier.types";
@@ -121,7 +121,7 @@ export default function StockPage() {
         name: supplierFormData.name,
         contact: supplierFormData.contact || null,
       });
-      toast.success("Proveedor creado exitosamente");
+      clientSuccessHandler(SUCCESS_MESSAGES.SUPPLIER_CREATED);
       setIsSupplierModalOpen(false);
       setSupplierFormData({ name: "", contact: "" });
       await loadSuppliers();
@@ -137,7 +137,7 @@ export default function StockPage() {
     try {
       setSubmitting(true);
       await productClientService.create(formData);
-      toast.success("Producto creado exitosamente");
+      clientSuccessHandler(SUCCESS_MESSAGES.PRODUCT_CREATED);
       setIsModalOpen(false);
       resetForm();
       loadProducts();
@@ -191,7 +191,7 @@ export default function StockPage() {
     try {
       setGeneratingPDF(true);
       await generateBarcodeCatalogPDF();
-      toast.success("PDF generado exitosamente");
+      clientSuccessHandler(SUCCESS_MESSAGES.PDF_GENERATED);
     } catch (error) {
       clientErrorHandler(error);
     } finally {

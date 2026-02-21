@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ROUTES_BY_ROLE } from "@/constants/permissions.constant";
 import { Role } from "@prisma/client";
 import { Cancel01Icon } from "hugeicons-react";
 import * as HugeIcons from "hugeicons-react";
+import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/constants/routes";
 
 interface SidebarProps {
   userRole: Role;
@@ -17,7 +19,16 @@ interface SidebarProps {
 
 export function Sidebar({ userRole, username, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const routes = ROUTES_BY_ROLE[userRole];
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    const success = await logout();
+    if (success) {
+      router.push(ROUTES.LOGIN);
+    }
+  };
 
   const getIcon = (iconName: string) => {
     const Icon = (HugeIcons as Record<string, React.ComponentType<{ size: number }>>)[iconName];
@@ -89,6 +100,7 @@ export function Sidebar({ userRole, username, isOpen, onClose }: SidebarProps) {
               </div>
             </div>
             <button
+              onClick={handleLogout}
               className="w-10 h-10 hover:bg-primary-light/20 rounded-lg transition-colors flex items-center justify-center"
               title="Cerrar sesión"
             >
