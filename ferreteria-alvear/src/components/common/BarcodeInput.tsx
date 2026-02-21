@@ -17,7 +17,7 @@ export function BarcodeInput({ value, onChange, disabled }: BarcodeInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scanBufferRef = useRef<string>("");
-  const scanTimeoutRef = useRef<NodeJS.Timeout>();
+  const scanTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
